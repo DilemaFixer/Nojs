@@ -2,32 +2,39 @@
 #define LEXER_H
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include "utils/arr.h"
+#include "utils/queue.h"
+#include "token.h"
 
-typedef enum ttype {
-    NUMBER,
-    LPARENT,
-    RPARENT,
-    MUL,
-    DIV,
-    PLUS,
-    MINUS,
-    END
-} ttype; // token type
+typedef struct token_t token_t;
 
-typedef struct token_t {
-    ttype type;
+typedef struct lexer_t {
+    const char *source;
+    size_t length;
+    size_t position;
     size_t line;
     size_t column;
-    union {
-        double number;
-    } value;
-} token_t;
+    arr_t *tokens;
+} lexer_t;
 
-token_t *new_token(ttype type , size_t line , size_t column);
-token_t *new_number_token(ttype type , size_t line , size_t column , double number);
-void free_token(token_t *token);
+lexer_t *new_lexer(const char *source);
+void free_lexer(lexer_t *lexer);
 
-arr_t *tokenize(const char *code);
+bool lexer_is_end(lexer_t *lexer);
+char lexer_peak(lexer_t *lexer);
+char lexer_peak_next(lexer_t *lexer);
+char lexer_advance(lexer_t *lexer);
+
+token_t *get_next_token(lexer_t *lexer);
+token_t *get_previouse_token(lexer_t *lexer);
+
+bool is_keyword(lexer_t *lexer , const char *word);
+void skip_whitespace(lexer_t *lexer);
+double parse_number(lexer_t *lexer);
+bool is_ssytem(char c);
+token_t *check_keyword(lexer_t *lexer);
+
+lexer_t *tokenize(const char *code);
 
 #endif

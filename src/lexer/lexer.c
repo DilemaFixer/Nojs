@@ -1,68 +1,182 @@
-#include "lexer.h"
 #include "utils/arr.h"
 #include "utils/logger.h"
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
+#include "utils/queue.h"
+
+#include "lexer.h"
+#include "token.h"
+
 #include <ctype.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 
-token_t *new_token(ttype type, size_t line , size_t column){
-    token_t *token = (token_t*)malloc(sizeof(token_t));
-    if(!type) elog("Error allocation memory for token_t struct");
+lexer_t *new_lexer(const char *source) {
+  if (!source)
+    elog("Can't create lexer_t struct with NULL ptr on source code");
+  if (!*source)
+    elog("Can't create lexer_t struct with empty string");
 
-    token->type = type;
-    token->value.number = 0.0;
-    token->line = line;
-    token->column = column;
-    return token;
+  lexer_t *lexer = (lexer_t *)malloc(sizeof(lexer_t));
+  if (!lexer)
+    elog("Error allocation memory for lexer_t struct");
+
+  lexer->tokens = new_arr(1);
+  lexer->line = 1;
+  lexer->column = 0;
+  lexer->position = 0;
+  lexer->length = strlen(source);
+  lexer->source = source;
+
+  return lexer;
 }
 
-token_t *new_number_token(ttype type , size_t line , size_t column, double number){
-    token_t *token = new_token(type , line , column);
-    token->value.number = number;
-    return token;
+void free_lexer(lexer_t *lexer) {
+  if (!lexer)
+    return;
+
+  if (lexer->tokens)
+    free_arr(lexer->tokens);
+
+  // free(lexer->source);
+  free(lexer);
 }
 
-void free_token(token_t *token){
-    if(token)
-        free(token);
+bool lexer_is_end(lexer_t *lexer) {
+  return lexer->source[lexer->position] == '\0';
 }
 
-bool is_system_symbol(char c){
-    return c == '.';
+char lexer_peak(lexer_t *lexer) { return lexer->source[lexer->position]; }
+
+char lexer_peak_next(lexer_t *lexer) {
+  if (lexer_is_end(lexer))
+    return '\0';
+  return lexer->source[lexer->position + 1];
 }
 
-char *take_word(const char *code){
-    if(!code) elog("Can't take word from NULL ptr on code string");
-    if(!*code) elog("Can't take word from empty code string");
+char lexer_advance(lexer_t *lexer) {
+  if (lexer_is_end(lexer))
+    return '\0';
 
-    size_t copy_count = 0;
+  lexer->position++;
+  return lexer->source[lexer->position - 1];
+}
 
-    while(*code != '\n'){
-        if(is_system_symbol(*c) && copy_count)
-        copy_count
+token_t *get_previouse_token(lexer_t *lexer) {
+  if (lexer->tokens->count == 0)
+    return NULL;
+  return (token_t *)arr_get(lexer->tokens, lexer->tokens->count - 1);
+}
+
+bool is_keyword(lexer_t *lexer, const char *word) {
+  size_t word_len = strlen(word);
+
+  if (lexer->position + word_len > lexer->length) {
+    return false;
+  }
+
+  return strncmp(word, &lexer->source[lexer->position], word_len) == 0;
+}
+
+void skip_whitespace(lexer_t *lexer) {
+  char c;
+  while (isspace(c = lexer_peak(lexer))) {
+    if (c == ' ') {
+      lexer->column++;
+    } else {
+      lexer->line++;
+      lexer->column = 0;
     }
+
+    lexer_advance(lexer);
+  }
 }
 
-arr_t *tokenize(const char *code){
-    if(!code) elog("Can't parse code to tokens , ptr on code is NULL");
-    if(!*code) elog("Can't parse code to tokens , code is empty string");
+bool is_ssytem(char c) {
+  return c == '.' || c == '-' || c == '+' || c == '/' || c == '*' || c == ')' ||
+         c == '(';
+}
 
-    arr_t *tokens = new_arr(1);
-    size_t line = 1;
-    size_t column = 0;
+double parse_number(lexer_t *lexer) {
+  if (!isdigit(lexer_peak(lexer)))
+    elog("Can't parse number, have no digit char");
 
-    while(*code){
-        if(*code == '\n'){
-            line++;
-            column = 0;
-            code++;
-            continue;
-        }
-        
+  char buffer[64] = {0};
+  int buffer_pos = 0;
 
+  while (isdigit(lexer_peak(lexer)) && buffer_pos < 63) {
+    buffer[buffer_pos++] = lexer_peak(lexer);
+    lexer_advance(lexer);
+  }
+
+  if (lexer_peak(lexer) == '.' && isdigit(lexer_peak_next(lexer))) {
+    buffer[buffer_pos++] = '.';
+    lexer_advance(lexer);
+
+    while (isdigit(lexer_peak(lexer)) && buffer_pos < 63) {
+      buffer[buffer_pos++] = lexer_peak(lexer);
+      lexer_advance(lexer);
     }
+  }
 
-    arr_push(tokens , new_token(END , line , column));
-    return tokens;
+  buffer[buffer_pos] = '\0';
+
+  return strtod(buffer, NULL);
+}
+
+token_t *check_keyword(lexer_t *lexer) {
+  if (is_keyword(lexer, "*"))
+    return new_token(lexer, MUL);
+  if (is_keyword(lexer, "/"))
+    return new_token(lexer, DIV);
+  if (is_keyword(lexer, "+"))
+    return new_token(lexer, PLUS);
+  if (is_keyword(lexer, "-"))
+    return new_token(lexer, MINUS);
+  if (is_keyword(lexer, "("))
+    return new_token(lexer, LPARENT);
+  if (is_keyword(lexer, ")"))
+    return new_token(lexer, RPARENT);
+
+  return NULL;
+}
+
+token_t *get_next_token(lexer_t *lexer) {
+  skip_whitespace(lexer);
+
+  if (isdigit(lexer_peak(lexer))) {
+    double value = parse_number(lexer);
+    ilog("Parse number : %f", value);
+    return new_number_token(lexer, NUMBER, value);
+  }
+
+  token_t *token = check_keyword(lexer);
+
+  if (token) {
+    ilog("parse key word : %d", token->type);
+    lexer_advance(lexer);
+    return token;
+  }
+
+  ilog("Unexpected char : %c", lexer_peak(lexer));
+  lexer_advance(lexer); // Skip unexpected character
+  return get_next_token(lexer);
+}
+
+lexer_t *tokenize(const char *code) {
+  if (!code)
+    elog("Can't tokenize code, NULL ptr on it");
+  if (!*code)
+    elog("Can't tokenize code, have empty string");
+
+  lexer_t *lexer = new_lexer(code);
+
+  while (!lexer_is_end(lexer)) {
+    token_t *token = get_next_token(lexer);
+    arr_push(lexer->tokens, token);
+
+    if (token->type == END)
+      break;
+  }
+
+  return lexer;
 }
