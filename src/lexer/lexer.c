@@ -140,24 +140,34 @@ token_t *check_keyword(lexer_t *lexer) {
   return NULL;
 }
 
+void skip_comment(lexer_t *lexer){
+    if(lexer_peak(lexer) != '/' || lexer_peak_next(lexer) != '/')
+            return;
+    char c;
+    while((c = lexer_peak(lexer)) != '\n' && !lexer_is_end(lexer)) {
+        lexer_advance(lexer);
+    }
+
+    lexer_advance(lexer);
+}
+
 token_t *get_next_token(lexer_t *lexer) {
   skip_whitespace(lexer);
+  skip_comment(lexer);
 
   if (isdigit(lexer_peak(lexer))) {
     double value = parse_number(lexer);
-    ilog("Parse number : %f", value);
     return new_number_token(lexer, NUMBER, value);
   }
 
   token_t *token = check_keyword(lexer);
 
   if (token) {
-    ilog("parse key word : %d", token->type);
     lexer_advance(lexer);
     return token;
   }
 
-  ilog("Unexpected char : %c", lexer_peak(lexer));
+  wlog("Unexpected char : %c", lexer_peak(lexer));
   lexer_advance(lexer); // Skip unexpected character
   return get_next_token(lexer);
 }
@@ -173,10 +183,9 @@ lexer_t *tokenize(const char *code) {
   while (!lexer_is_end(lexer)) {
     token_t *token = get_next_token(lexer);
     arr_push(lexer->tokens, token);
-
-    if (token->type == END)
-      break;
   }
+    
+  arr_push(lexer->tokens , new_token(lexer , END));
 
   return lexer;
 }

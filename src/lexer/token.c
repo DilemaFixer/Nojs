@@ -34,16 +34,15 @@ void free_token(token_t *token) {
 
 void log_token(token_t *token){
     if(!token) elog("Can't print token by NULL ptr on it");
-
     switch(token->type){
-        case MUL : ilog("MUL");
-        case DIV : ilog("DIV");
-        case PLUS : ilog("PLUS");
-        case MINUS : ilog("MINUS");
-        case LPARENT : ilog("LPARENT");
-        case RPARENT : ilog("RPARENT");
-        case NUMBER : ilog("NUMBER : %f" , token->value.number);
-        case END : ilog("END");
-        default : ilog("Indefine token type");
+        case MUL : dlog("MUL"); break;
+        case DIV : dlog("DIV"); break;
+        case PLUS : dlog("PLUS"); break;
+        case MINUS : dlog("MINUS"); break;
+        case LPARENT : dlog("LPARENT"); break;
+        case RPARENT : dlog("RPARENT"); break;
+        case NUMBER : dlog("NUMBER : %f" , token->value.number); break;
+        case END : dlog("END"); break;
+        default : dlog("Indefine token type");
     }
 }
