@@ -28,11 +28,11 @@ typedef enum ttype {
     
     /* Операторы сравнения */
     EQUALS,        /* == */
-    NOT_EQUALS,    /* != */
+    NOT_EQUALS,    /* ! = */
     GREATER,       /* > */
     LESS,          /* < */
-    GREATER_EQUAL, /* >= */
-    LESS_EQUAL,    /* <= */
+    GREATER_EQUAL, /* > = */
+    LESS_EQUAL,    /* < = */
     
     /* Логические операторы */
     AND,           /* && */
@@ -75,7 +75,6 @@ typedef enum ttype {
          
 typedef struct token_t {
     ttype type;
-    char *lexem;
     size_t line;
     size_t column;
     union {
@@ -88,7 +87,6 @@ typedef struct token_t {
 token_t *new_token(lexer_t *lexer , ttype type);
 token_t *new_number_token(lexer_t *lexer , ttype type, double number);
 void free_token(token_t *token);
-
 void log_token(token_t *token);
 
 #endif

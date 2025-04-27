@@ -100,25 +100,38 @@ double parse_number(lexer_t *lexer) {
   if (!isdigit(lexer_peak(lexer)))
     elog("Can't parse number, have no digit char");
 
-  char buffer[64] = {0};
-  int buffer_pos = 0;
+  size_t capacity = 16;
+  size_t length = 0;
+  char *buffer = (char*)malloc(sizeof(char) * capacity);
+  if(!buffer) elog("Error allocation memory for number buffer");
+  
+  while (isdigit(lexer_peak(lexer))) {
+    buffer[length++] = lexer_advance(lexer);
 
-  while (isdigit(lexer_peak(lexer)) && buffer_pos < 63) {
-    buffer[buffer_pos++] = lexer_peak(lexer);
-    lexer_advance(lexer);
-  }
-
-  if (lexer_peak(lexer) == '.' && isdigit(lexer_peak_next(lexer))) {
-    buffer[buffer_pos++] = '.';
-    lexer_advance(lexer);
-
-    while (isdigit(lexer_peak(lexer)) && buffer_pos < 63) {
-      buffer[buffer_pos++] = lexer_peak(lexer);
-      lexer_advance(lexer);
+    if(length >= capacity){
+        capacity *= 2;
+        char *new_buffer = realloc(buffer , capacity);
+        if(!new_buffer) elog("error allocation memory for parse number buffer");
+        buffer = new_buffer;
     }
   }
 
-  buffer[buffer_pos] = '\0';
+  if(lexer_peak(lexer) == '.'){
+    while (isdigit(lexer_peak(lexer))) {
+      buffer[length++] = lexer_advance(lexer);
+
+      if(length >= capacity){
+          capacity *= 2;
+          char *new_buffer = realloc(buffer , capacity);
+          if(!new_buffer) elog("Error allocation memory for parsing number buffer");
+          buffer = new_buffer;
+      }
+    }
+  }else{
+      elog("Lexer error : can't parse number int %zu:%zu, it have digit : %c" , lexer->line , lexer->column , lexer_peak(lexer));
+  }
+
+  buffer[length] = '\0';
 
   return strtod(buffer, NULL);
 }
@@ -151,21 +164,27 @@ void skip_comment(lexer_t *lexer){
     lexer_advance(lexer);
 }
 
+bool is_number(char *word) {
+    while(*word){
+        if(!isdigit(*word))
+            return false;
+    }
+    return true;
+}
+
 token_t *get_next_token(lexer_t *lexer) {
   skip_whitespace(lexer);
   skip_comment(lexer);
-
+    
   if (isdigit(lexer_peak(lexer))) {
     double value = parse_number(lexer);
     return new_number_token(lexer, NUMBER, value);
   }
 
   token_t *token = check_keyword(lexer);
+  if (token) return lexer_advance(lexer);
 
-  if (token) {
-    lexer_advance(lexer);
-    return token;
-  }
+    
 
   wlog("Unexpected char : %c", lexer_peak(lexer));
   lexer_advance(lexer); // Skip unexpected character
