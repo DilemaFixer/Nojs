@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 lexer_t *new_lexer(const char *source) {
   if (!source)
@@ -67,14 +68,8 @@ token_t *get_previouse_token(lexer_t *lexer) {
   return (token_t *)arr_get(lexer->tokens, lexer->tokens->count - 1);
 }
 
-bool is_keyword(lexer_t *lexer, const char *word) {
-  size_t word_len = strlen(word);
-
-  if (lexer->position + word_len > lexer->length) {
-    return false;
-  }
-
-  return strncmp(word, &lexer->source[lexer->position], word_len) == 0;
+bool is_keyword(const char *word_one , const char *word_two) {
+  return strcmp(word_one , word_two) != 0;
 }
 
 void skip_whitespace(lexer_t *lexer) {
@@ -96,58 +91,18 @@ bool is_ssytem(char c) {
          c == '(';
 }
 
-double parse_number(lexer_t *lexer) {
-  if (!isdigit(lexer_peak(lexer)))
-    elog("Can't parse number, have no digit char");
-
-  size_t capacity = 16;
-  size_t length = 0;
-  char *buffer = (char*)malloc(sizeof(char) * capacity);
-  if(!buffer) elog("Error allocation memory for number buffer");
-  
-  while (isdigit(lexer_peak(lexer))) {
-    buffer[length++] = lexer_advance(lexer);
-
-    if(length >= capacity){
-        capacity *= 2;
-        char *new_buffer = realloc(buffer , capacity);
-        if(!new_buffer) elog("error allocation memory for parse number buffer");
-        buffer = new_buffer;
-    }
-  }
-
-  if(lexer_peak(lexer) == '.'){
-    while (isdigit(lexer_peak(lexer))) {
-      buffer[length++] = lexer_advance(lexer);
-
-      if(length >= capacity){
-          capacity *= 2;
-          char *new_buffer = realloc(buffer , capacity);
-          if(!new_buffer) elog("Error allocation memory for parsing number buffer");
-          buffer = new_buffer;
-      }
-    }
-  }else{
-      elog("Lexer error : can't parse number int %zu:%zu, it have digit : %c" , lexer->line , lexer->column , lexer_peak(lexer));
-  }
-
-  buffer[length] = '\0';
-
-  return strtod(buffer, NULL);
-}
-
-token_t *check_keyword(lexer_t *lexer) {
-  if (is_keyword(lexer, "*"))
+token_t *check_keyword(lexer_t *lexer , const char *word) {
+  if (is_keyword(word, "*"))
     return new_token(lexer, MUL);
-  if (is_keyword(lexer, "/"))
+  if (is_keyword(word, "/"))
     return new_token(lexer, DIV);
-  if (is_keyword(lexer, "+"))
+  if (is_keyword(word, "+"))
     return new_token(lexer, PLUS);
-  if (is_keyword(lexer, "-"))
+  if (is_keyword(word, "-"))
     return new_token(lexer, MINUS);
-  if (is_keyword(lexer, "("))
+  if (is_keyword(word, "("))
     return new_token(lexer, LPARENT);
-  if (is_keyword(lexer, ")"))
+  if (is_keyword(word, ")"))
     return new_token(lexer, RPARENT);
 
   return NULL;
@@ -164,31 +119,80 @@ void skip_comment(lexer_t *lexer){
     lexer_advance(lexer);
 }
 
-bool is_number(char *word) {
+char *take_word(lexer_t *lexer){
+    char c = lexer_peak(lexer);
+
+    if(is_ssytem(c)){
+        size_t len = 1;
+        char n;
+        if((n = lexer_peak_next(lexer)) == '=' || n == '&' || n == '|'){
+            len++;
+        }
+        char *result = (char*)malloc(sizeof(char) * (len + 1));            
+        if(!result) elog("Error allocation memory for taking word in lexer");
+        strncpy(result , &lexer->source[lexer->position] , len);
+        lexer->position += len;
+        result[len] = '\0';
+        return result;
+    }
+    
+    size_t len = 0;
+    size_t base_pos = lexer->position;
+    while(1){
+        c = lexer_peak(lexer);
+        if(c == '\n' || c == ' ' || c == '\0')
+            break;
+
+        if(is_ssytem(c)){
+            if(c == '.' && isdigit(lexer_peak_next(lexer))){
+                len++;
+                lexer_advance(lexer);
+            }else{
+                break;
+            }
+        } else {
+            len++;
+            lexer_advance(lexer);
+        }
+    }
+
+    char *result = (char*)malloc(sizeof(char) * (len + 1));
+    if(!result) elog("Error allocation memory for taking word");
+    strncpy(result , &lexer->source[base_pos] , len);
+    result[len] = '\0';
+    
+    return result;
+}
+
+bool is_number(char *word){
     while(*word){
-        if(!isdigit(*word))
-            return false;
+        if(!isdigit(*word)){
+            if(*word != '.' && !isdigit(*(word + 1)))
+                return false;
+        }
+            
+        word++;
     }
     return true;
-}
+}   
 
 token_t *get_next_token(lexer_t *lexer) {
   skip_whitespace(lexer);
   skip_comment(lexer);
-    
-  if (isdigit(lexer_peak(lexer))) {
-    double value = parse_number(lexer);
-    return new_number_token(lexer, NUMBER, value);
+  char *word = take_word(lexer);
+
+  if(is_number(word)){
+      double value = atof(word);
+      free(word);
+      return new_number_token(lexer , NUMBER, value);
   }
 
-  token_t *token = check_keyword(lexer);
-  if (token) return lexer_advance(lexer);
+  token_t *token = check_keyword(lexer , word);
 
-    
+  if(!token) elog("Undefine token %s" , word);
 
-  wlog("Unexpected char : %c", lexer_peak(lexer));
-  lexer_advance(lexer); // Skip unexpected character
-  return get_next_token(lexer);
+  free(word);
+  return token;
 }
 
 lexer_t *tokenize(const char *code) {

@@ -29,11 +29,11 @@ char lexer_advance(lexer_t *lexer);
 token_t *get_next_token(lexer_t *lexer);
 token_t *get_previouse_token(lexer_t *lexer);
 
-bool is_keyword(lexer_t *lexer , const char *word);
+bool is_keyword(const char *word_one , const char *word_two);
 void skip_whitespace(lexer_t *lexer);
 double parse_number(lexer_t *lexer);
 bool is_ssytem(char c);
-token_t *check_keyword(lexer_t *lexer);
+token_t *check_keyword(lexer_t *lexer , const char *word);
 
 lexer_t *tokenize(const char *code);
 

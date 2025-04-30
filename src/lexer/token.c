@@ -28,7 +28,6 @@ void free_token(token_t *token) {
   if (!token)
     return;
 
-  free(token->lexem);
   free(token);
 }
 
