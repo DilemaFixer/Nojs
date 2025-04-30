@@ -3,7 +3,7 @@
 #include "utils/logger.h"
 
 int main(void) {
-  char *code = "3.5 * (5.75 + 4)";
+  char *code = "3.5 * (5.75 + 4) \" bla bla bla \"";
   dlog("Will parse %s \n" , code);
   lexer_t *lexer = tokenize(code);
   

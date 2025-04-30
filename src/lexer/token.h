@@ -86,6 +86,8 @@ typedef struct token_t {
 
 token_t *new_token(lexer_t *lexer , ttype type);
 token_t *new_number_token(lexer_t *lexer , ttype type, double number);
+token_t *new_boolean_token(lexer_t *lexer , ttype type , bool boolean);
+token_t *new_string_token(lexer_t *lexer , ttype type , char* string);
 void free_token(token_t *token);
 void log_token(token_t *token);
 
