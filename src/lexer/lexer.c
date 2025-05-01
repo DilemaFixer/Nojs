@@ -69,7 +69,7 @@ token_t *get_previouse_token(lexer_t *lexer) {
 }
 
 bool is_keyword(const char *word_one, const char *word_two) {
-  return strcmp(word_one, word_two) != 0;
+  return strcmp(word_one, word_two) == 0;
 }
 
 void skip_whitespace(lexer_t *lexer) {
@@ -301,10 +301,13 @@ bool is_string(char *word) {
 token_t *get_next_token(lexer_t *lexer) {
   if(lexer_is_end(lexer))
       elog("Error , try tokenize after ending");
+
   skip_whitespace(lexer);
   skip_comment(lexer);
+
   char *word = take_word(lexer);
   dlog("Parse word : %s" , word);
+  skip_whitespace(lexer);
 
   if(is_string(word)){
       dlog("create string token");
