@@ -9,6 +9,7 @@
 extern lexer_t *lexer_g;
 extern size_t current_token;
 
+void syntax_error(const char* msg);
 bool current_token_is(ttype type);
 bool next_token_is(ttype type);
 bool prev_token_is(ttype type);
@@ -16,6 +17,17 @@ token_t *peek_current_token();
 token_t *peek_next_token();
 token_t *peek_prev_token();
 void tskip();
+
+ast_node *parse_var_declaration();
+ast_node *parse_if_statement();
+ast_node *parse_loop_statement();
+ast_node *parse_function_declaration();
+ast_node *parse_return_statement();
+ast_node *parse_print_statement();
+ast_node *parse_take_statement();
+ast_node *parse_block();
+ast_node *parse_function_call(const char *name);
+ast_node *parse_array_literal();
 
 ast_node *parse_program();
 ast_node *parse_statement();
