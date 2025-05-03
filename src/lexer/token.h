@@ -10,8 +10,8 @@ typedef struct lexer_t lexer_t;
 
 typedef enum ttype {
     NUMBER,
-    LPARENT,
-    RPARENT,
+    LPARENT, // (
+    RPARENT, // )
     MUL,
     DIV,
     PLUS,
