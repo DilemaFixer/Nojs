@@ -145,8 +145,7 @@ typedef struct ast_node {
         // For AST_FUNCTION_DECLARATION
         struct {
             char* name;
-            struct ast_node** parameters; // Array of AST_IDENTIFIER nodes
-            size_t parameter_count;
+            arr_t *parameters; // Array of AST_IDENTIFIER nodes
             struct ast_node* body;
         } function_declaration;
         
@@ -164,8 +163,7 @@ typedef struct ast_node {
         
         // For AST_BLOCK
         struct {
-            struct ast_node** statements;
-            size_t statement_count;
+            arr_t *stmts;
         } block;
         
         // For AST_ARRAY
@@ -194,7 +192,7 @@ typedef struct ast_node {
     };
 } ast_node;
 
-ast_node* create_ast_node();
+ast_node* create_ast_node(ast_type type);
 ast_node* create_number_node(double value);
 ast_node* create_string_node(const char* value);
 ast_node* create_boolean_node(bool value);
@@ -210,12 +208,12 @@ ast_node* create_if_else_node(ast_node* condition, ast_node* if_body, ast_node* 
 ast_node* create_loop_node(ast_node* condition, ast_node* body);
 ast_node* create_next_node();
 ast_node* create_stop_node();
-ast_node* create_function_declaration_node(const char* name, ast_node** parameters, size_t parameter_count, ast_node* body);
+ast_node* create_function_declaration_node(const char* name, arr_t *params, ast_node* body);
 ast_node* create_function_call_node(ast_node* callee, ast_node** arguments, size_t argument_count);
 ast_node* create_return_node(ast_node* value);
 ast_node* create_print_node(ast_node** arguments, size_t argument_count);
 ast_node* create_take_node(ast_node** arguments, size_t argument_count);
-ast_node* create_block_node(ast_node** statements, size_t statement_count);
+ast_node* create_block_node(arr_t *stmts);
 ast_node* create_array_node(ast_node** elements, size_t element_count);
 ast_node* create_array_access_node(ast_node* array, ast_node* index);
 ast_node* create_property_access_node(ast_node* object, const char* property);

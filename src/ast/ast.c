@@ -109,20 +109,11 @@ ast_node* create_stop_node() {
     return create_ast_node(AST_STOP);
 }
 
-ast_node* create_function_declaration_node(const char* name, ast_node** parameters, size_t parameter_count, ast_node* body) {
+ast_node* create_function_declaration_node(const char* name, arr_t *params, ast_node* body) {
     ast_node* node = create_ast_node(AST_FUNCTION_DECLARATION);
     node->function_declaration.name = strdup(name);
     if(!node->function_declaration.name) elog("Error allocating memory for function name");
-    
-    node->function_declaration.parameters = (ast_node**)malloc(parameter_count * sizeof(ast_node*));
-    if(!node->function_declaration.parameters && parameter_count > 0) 
-        elog("Error allocating memory for function parameters");
-    
-    for(size_t i = 0; i < parameter_count; i++) {
-        node->function_declaration.parameters[i] = parameters[i];
-    }
-    
-    node->function_declaration.parameter_count = parameter_count;
+    node->function_declaration.parameters = params;
     node->function_declaration.body = body;
     return node;
 }
@@ -159,18 +150,9 @@ ast_node* create_take_node(ast_node** arguments, size_t argument_count) {
     return create_function_call_node(identifier, arguments, argument_count);
 }
 
-ast_node* create_block_node(ast_node** statements, size_t statement_count) {
+ast_node* create_block_node(arr_t *stmts) {
     ast_node* node = create_ast_node(AST_BLOCK);
-    
-    node->block.statements = (ast_node**)malloc(statement_count * sizeof(ast_node*));
-    if(!node->block.statements && statement_count > 0) 
-        elog("Error allocating memory for block statements");
-    
-    for(size_t i = 0; i < statement_count; i++) {
-        node->block.statements[i] = statements[i];
-    }
-    
-    node->block.statement_count = statement_count;
+    node->block.stmts = stmts;
     return node;
 }
 
