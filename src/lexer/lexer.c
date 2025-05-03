@@ -219,8 +219,6 @@ char *take_word(lexer_t *lexer) {
     lexer_advance(lexer);
     len++;
     while(1){
-        dlog("Char %c", lexer_peak(lexer));
-        
         if(lexer_peak(lexer) == '\0')
             elog("Error parsing string , search where =))");
             
@@ -306,11 +304,10 @@ token_t *get_next_token(lexer_t *lexer) {
   skip_comment(lexer);
 
   char *word = take_word(lexer);
-  dlog("Parse word : %s" , word);
+  //dlog("Parse word : %s" , word);
   skip_whitespace(lexer);
 
   if(is_string(word)){
-      dlog("create string token");
      return new_string_token(lexer , STRING , word);
   }
 
