@@ -280,15 +280,199 @@ ast_node *parse_block(){
     return create_block_node(stmts);
 }
 
-ast_node *parse_function_call(const char *name){
-
+ast_node *parse_function_call(const char *name) {
+    if(!current_token_is(LPARENT))
+        syntax_error("After function name %s must go '('" , name);
+    tskip();
+    
+    arr_t *args = new_arr(1);
+    
+    if(current_token_is(RPARENT)) {
+        tskip();
+        ast_node *identifier = create_identifier_node(name);
+        return create_function_call_node(identifier, NULL, 0);
+    }
+    
+    while(1) {
+        ast_node *arg = parse_expression();
+        if(!arg)
+            syntax_error("Invalid argument in function call %s", name);
+        
+        arr_push(args, arg);
+        
+        if(current_token_is(RPARENT)) {
+            tskip();
+            break;
+        }
+        
+        if(!current_token_is(COMMA))
+            syntax_error("Expected comma after argument in function call %s", name);
+        tskip();
+    }
+    
+    ast_node *identifier = create_identifier_node(name);
+    return create_function_call_node(identifier, (ast_node**)args->items, args->count);
 }
-ast_node *parse_array_literal();
 
-ast_node *parse_expression();
-ast_node *parse_equality();
-ast_node *parse_comparison();
-ast_node *parse_term();
-ast_node *parse_factor();
-ast_node *parse_unary();
-ast_node *parse_primary();
+ast_node *parse_array_literal(){
+    if(!current_token_is(RBRACKET))
+        syntax_error("Array literal must start with '['");
+    tskip();
+
+    if(current_token_is(RBRACKET)){
+        tskip();
+        return create_array_node(NULL , 0);
+    }
+
+    arr_t *elements = new_arr(1);
+    while(1){
+        ast_node *expr = parse_expression();
+        if(!expr)
+            syntax_error("Invalid element in array literal");
+
+        arr_push(elements , expr);
+        if(current_token_is(RBRACE)){
+            tskip();
+            break;
+        }
+
+        if(!current_token_is(COMMA))
+            syntax_error("Expected comma after array element");
+        tskip();
+    }
+
+    return create_array_node((ast_node**)elements->items , elements->count);
+}
+
+ast_node *parse_expression() {
+    return parse_equality();
+}
+
+ast_node *parse_equality() {
+    ast_node *left = parse_comparison();
+    
+    while(current_token_is(EQUALS) || current_token_is(NOT_EQUALS)) {
+        binary_op_type op = current_token_is(EQUALS) ? OP_EQUALS : OP_NOT_EQUALS;
+        tskip();
+        ast_node *right = parse_comparison();
+        left = create_binary_op_node(op, left, right);
+    }
+    
+    return left;
+}
+
+ast_node *parse_comparison(){
+    ast_node *left = parse_term();
+
+ while(current_token_is(GREATER) || current_token_is(LESS) || 
+          current_token_is(GREATER_EQUAL) || current_token_is(LESS_EQUAL)) {
+    binary_op_type op;
+    if(current_token_is(GREATER)) op = OP_GREATER;
+    else if(current_token_is(GREATER_EQUAL)) op = OP_GREATER_EQUAL;
+    else if(current_token_is(LESS)) op = OP_LESS;
+    else op = OP_LESS_EQUAL;
+    tskip();
+    ast_node *rigth = parse_term();
+    return create_binary_op_node(op ,left , rigth);
+ }
+
+ return left;
+}
+
+ast_node *parse_term(){
+    ast_node *left = parse_factor();
+
+    while(current_token_is(PLUS) || current_token_is(MINUS)){
+        binary_op_type op = current_token_is(PLUS) ? OP_ADD : OP_SUBTRACT;
+        tskip();
+        ast_node *rigth = parse_factor();
+        return create_binary_op_node(op , left , right);
+    }
+
+    return left;
+}
+
+ast_node *parse_factor(){
+    ast_node *left = parse_unary();
+    
+    while(current_token_is(MUL) || current_token_is(DIV)){
+        binary_op_type op = current_token_is(MUL) ? OP_MULTIPLY : OP_DIVIDE;
+        tskip();
+        ast_node *rigth = parse_unary();
+        left = create_binary_op_node(op , left , rigth);
+    }
+    return left;
+}
+
+ast_node *parse_unary(){
+    if(current_token_is(MINUS) || current_token_is(NOT)) {
+        unary_op_type op = current_token_is(MINUS) ? OP_NEGATE : OP_NOT;
+        tskip();
+        ast_node *operand = parse_unary();
+        return create_unary_op_node(op, operand);
+    }
+    
+    return parse_primary();
+}
+
+ast_node *parse_primary(){
+    token_t *token = peek_current_token();
+
+    if(current_token_is(NUMBER)){
+        tskip();
+        return create_number_node(token->value.number);
+    }
+
+    if(current_token_is(STRING)){
+        tskip();
+        return create_string_node(token->value.string);
+    }
+
+    if(current_token_is(BOOLEAN)){
+        tskip();
+        return create_boolean_node(token->value.boolean);
+    }
+
+    if(current_token_is(NULL_VAL)){
+        tskip();
+        return create_null_node();
+    }
+
+    if(current_token_is(IDENTIFIER)){
+        char *name = token->value.string;
+        tskip();
+
+        if(current_token_is(LPARENT))
+            return parse_function_call();
+
+        if(current_token_is(DOT)){
+            tskip();
+            if(!current_token_is(IDENTIFIER))
+                syntax_error("Expected property name after '.'");
+
+            char *prop = token->value.string;
+            tskip();
+            ast_node *obj = create_identifier_node(name);
+            return create_property_access_node(obj, prop);
+        }
+
+        if(current_token_is(LBRACKET)){
+            tskip();
+            ast_node *index = parse_expression();
+
+            if(current_token_is(RBRACKET))
+                syntax_error("Expected ']' after array index");
+            tskip();
+
+            ast_node *array = create_identifier_node(name);
+            return create_array_access_node(array , index);
+        }
+        return create_identifier_node(name);
+    }
+
+    if(current_token_is(LBRACKET))
+        return parse_array_literal();
+
+    syntax_error("Unexpected token in expression");
+    return NULL;    
+}
