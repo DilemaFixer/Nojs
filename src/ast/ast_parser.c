@@ -212,7 +212,7 @@ ast_node *parse_function_declaration() {
     tskip();
     if(!current_token_is(IDENTIFIER))
         syntax_error("have function declaration without name");
-    token_t *token = current_token();
+    token_t *token = peek_current_token();
     char *func_name = token->value.string;
     tskip();
     
@@ -248,14 +248,14 @@ ast_node *parse_function_declaration() {
         syntax_error("After func func_name(params) . <- here , must go '{'");
 
     ast_node *func_body = parse_block();
-    ast_node *node = create_function_node(func_name, params , func_body);
+    ast_node *node = create_function_declaration_node(func_name, params , func_body);
     return node;
 }
 
 ast_node *parse_return_statement(){
     tskip();
     ast_node *value = parse_expression();
-    return create_return_node(return_body);
+    return create_return_node(value);
 }
 
 ast_node *parse_print_statement(){
@@ -331,7 +331,7 @@ ast_node *parse_array_literal(){
             syntax_error("Invalid element in array literal");
 
         arr_push(elements , expr);
-        if(current_token_is(RBRACE)){
+        if(current_token_is(RBRACKET)){
             tskip();
             break;
         }
@@ -460,7 +460,7 @@ ast_node *parse_primary(){
             tskip();
             ast_node *index = parse_expression();
 
-            if(current_token_is(RBRACKET))
+            if(!current_token_is(RBRACKET))
                 syntax_error("Expected ']' after array index");
             tskip();
 
