@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include "../utils/arr.h"
 
 typedef enum ast_type {
     // Literal values

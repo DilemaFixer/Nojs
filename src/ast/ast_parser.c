@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "ast.h"
+#include "ast_parser.h"
 #include "../lexer/lexer.h"
 #include "../lexer/token.h"
 #include "../utils/logger.h"
@@ -225,6 +226,7 @@ ast_node *parse_function_declaration() {
     if(current_token_is(RPARENT)) {
         tskip();
     } else {
+    token_t* token = peek_current_token();
         while(1) {
             if(!current_token_is(IDENTIFIER))
                 syntax_error("In function %s must go only names" , func_name);
@@ -276,7 +278,8 @@ ast_node *parse_block(){
         ast_node *stm = parse_statement();
         arr_push(stmts , stm);
     }
-
+    
+    tskip();  
     return create_block_node(stmts);
 }
 
@@ -443,7 +446,7 @@ ast_node *parse_primary(){
         tskip();
 
         if(current_token_is(LPARENT))
-            return parse_function_call();
+            return parse_function_call(name);
 
         if(current_token_is(DOT)){
             tskip();
@@ -472,7 +475,7 @@ ast_node *parse_primary(){
 
     if(current_token_is(LBRACKET))
         return parse_array_literal();
-
-    syntax_error("Unexpected token in expression");
+    
+    syntax_error("Unexpected token in expression %d , token index : %zu" , token->type , current_token);
     return NULL;    
 }

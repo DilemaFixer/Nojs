@@ -9,7 +9,7 @@
 extern lexer_t *lexer_g;
 extern size_t current_token;
 
-void syntax_error(const char* msg);
+void syntax_error(const char* format, ...);
 bool current_token_is(ttype type);
 bool next_token_is(ttype type);
 bool prev_token_is(ttype type);

@@ -256,8 +256,8 @@ void free_ast_node(ast_node* node) {
         
         case AST_FUNCTION_DECLARATION:
             free(node->function_declaration.name);
-            for(size_t i = 0; i < node->function_declaration.parameter_count; i++) {
-                free_ast_node(node->function_declaration.parameters[i]);
+            for(size_t i = 0; i < node->function_declaration.parameters->count; i++) {
+                free_ast_node(node->function_declaration.parameters->items[i]);
             }
             free(node->function_declaration.parameters);
             free_ast_node(node->function_declaration.body);
@@ -277,10 +277,10 @@ void free_ast_node(ast_node* node) {
             break;
         
         case AST_BLOCK:
-            for(size_t i = 0; i < node->block.statement_count; i++) {
-                free_ast_node(node->block.statements[i]);
+            for(size_t i = 0; i < node->block.stmts->count; i++) {
+                free_ast_node(node->block.stmts->items[i]);
             }
-            free(node->block.statements);
+            free(node->block.stmts);
             break;
         
         case AST_ARRAY:
