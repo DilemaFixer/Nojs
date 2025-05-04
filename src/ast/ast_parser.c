@@ -315,7 +315,7 @@ ast_node *parse_function_call(const char *name) {
 }
 
 ast_node *parse_array_literal(){
-    if(!current_token_is(RBRACKET))
+    if(!current_token_is(LBRACKET))
         syntax_error("Array literal must start with '['");
     tskip();
 
@@ -373,7 +373,7 @@ ast_node *parse_comparison(){
     else op = OP_LESS_EQUAL;
     tskip();
     ast_node *rigth = parse_term();
-    return create_binary_op_node(op ,left , rigth);
+    left = create_binary_op_node(op ,left , rigth);
  }
 
  return left;
@@ -386,7 +386,7 @@ ast_node *parse_term(){
         binary_op_type op = current_token_is(PLUS) ? OP_ADD : OP_SUBTRACT;
         tskip();
         ast_node *rigth = parse_factor();
-        return create_binary_op_node(op , left , right);
+        left = create_binary_op_node(op , left , rigth);
     }
 
     return left;
